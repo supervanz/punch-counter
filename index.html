@@ -23,7 +23,10 @@
         .weight-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
         .weight-row label { font-size: 0.75rem; color: #65676b; }
         .weight-row input[type="number"] { width: 70px; padding: 5px 10px; border: 1.5px solid #e4e6eb; border-radius: 8px; font-size: 0.9rem; text-align: center; color: #1c1e21; }
-        button.main-btn { width: 100%; padding: 1rem; font-size: 1.1rem; font-weight: 600; cursor: pointer; border: none; border-radius: 12px; background: #007AFF; color: white; }
+        .btn-row { display: flex; gap: 10px; }
+        .btn-row .main-btn { flex: 1; }
+        button.main-btn { padding: 1rem; font-size: 1.1rem; font-weight: 600; cursor: pointer; border: none; border-radius: 12px; background: #007AFF; color: white; }
+        button.stop-btn { padding: 1rem 1.4rem; font-size: 1.1rem; font-weight: 600; cursor: pointer; border: none; border-radius: 12px; background: #ff3b30; color: white; white-space: nowrap; }
         .history-container { width: 90%; max-width: 420px; background: white; border-radius: 20px; padding: 1.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         td, th { padding: 8px 0; border-bottom: 1px solid #f0f2f5; text-align: left; }
@@ -54,7 +57,10 @@
         <label for="weightInput">체중 (kg)</label>
         <input type="number" id="weightInput" min="30" max="200" value="70">
     </div>
-    <button id="startButton" class="main-btn">운동 시작</button>
+    <div class="btn-row">
+        <button id="startButton" class="main-btn">운동 시작</button>
+        <button id="stopButton" class="stop-btn" style="display:none;">STOP</button>
+    </div>
 </div>
 
 <div class="history-container">
@@ -236,6 +242,22 @@ registerProcessor('rms-processor', RMSProcessor);
             .join('');
     }
 
+    function resetSession() {
+        clearInterval(timerInterval);
+        isRunning = false;
+        isFirstStart = true;
+        hitCount = 0;
+        remainingSeconds = targetMinutes * 60;
+        previousRMS = 0;
+        document.getElementById('hitCount').innerText = '0';
+        document.getElementById('calories').innerText = '0.0';
+        document.getElementById('startButton').innerText = '운동 시작';
+        document.getElementById('stopButton').style.display = 'none';
+        updateTimerDisplay();
+    }
+
+    document.getElementById('stopButton').addEventListener('click', resetSession);
+
     document.getElementById('startButton').addEventListener('click', async () => {
         if (!isRunning) {
             // 오디오 초기화 또는 재개
@@ -265,7 +287,6 @@ registerProcessor('rms-processor', RMSProcessor);
                 if (remainingSeconds > 0) {
                     remainingSeconds--;
                     updateTimerDisplay();
-                    // [Fix 1] 사용자 체중 반영
                     const weight = getUserWeight();
                     const elapsedMin = targetMinutes - remainingSeconds / 60;
                     document.getElementById('calories').innerText =
@@ -275,17 +296,20 @@ registerProcessor('rms-processor', RMSProcessor);
                     isRunning = false;
                     isFirstStart = true;
                     document.getElementById('startButton').innerText = '다시 시작';
+                    document.getElementById('stopButton').style.display = 'none';
                     playSound('end');
                     saveWorkout();
                 }
             }, 1000);
 
             document.getElementById('startButton').innerText = 'PAUSE';
+            document.getElementById('stopButton').style.display = 'block'; // 세션 시작 시 STOP 표시
             isRunning = true;
         } else {
             clearInterval(timerInterval);
             isRunning = false;
             document.getElementById('startButton').innerText = 'RESUME';
+            // PAUSE 상태에서도 STOP 버튼 유지
         }
     });
 </script>
