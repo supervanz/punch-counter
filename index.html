@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Punch Counter - Peak Edge Detection</title>
+    <title>Punch Counter Precision</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px 0; min-height: 100vh; margin: 0; background: #f0f2f5; color: #1c1e21; }
+        body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px 0; min-height: 100vh; margin: 0; background: #f0f2f5; color: #1c1e21; }
         .container { text-align: center; background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 90%; max-width: 420px; margin-bottom: 20px; }
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
         .stat-box { background: #f8f9fa; padding: 1rem; border-radius: 12px; }
@@ -14,14 +14,16 @@
         .timer-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 1.5rem; }
         .preset-btn { padding: 8px; font-size: 0.8rem; border: 1.5px solid #e4e6eb; border-radius: 8px; background: white; cursor: pointer; color: #65676b; }
         .preset-btn.active { border-color: #007AFF; color: #007AFF; background: #e7f3ff; font-weight: bold; }
-        .visualizer-container { margin: 1.5rem 0; }
-        .meter-bar { width: 100%; height: 20px; background: #e4e6eb; border-radius: 10px; overflow: hidden; position: relative; }
+        .meter-bar { width: 100%; height: 20px; background: #e4e6eb; border-radius: 10px; overflow: hidden; position: relative; margin: 1.5rem 0; }
         #volumeLevel { height: 100%; width: 0%; background: #34c759; transition: width 0.03s; }
         #thresholdLine { position: absolute; top: 0; bottom: 0; width: 2px; background: #ff3b30; z-index: 2; }
-        .slider-group { text-align: left; margin-bottom: 1rem; }
-        .slider-label { font-size: 0.75rem; color: #65676b; display: flex; justify-content: space-between; }
-        input[type="range"] { width: 100%; margin: 5px 0 15px 0; accent-color: #007AFF; }
-        button.main-btn { width: 100%; padding: 1rem; font-size: 1.1rem; font-weight: 600; cursor: pointer; border: none; border-radius: 12px; background: #007AFF; color: white; margin-bottom: 0.5rem; }
+        .slider-label { font-size: 0.75rem; color: #65676b; display: flex; justify-content: space-between; margin-bottom: 5px; }
+        input[type="range"] { width: 100%; margin-bottom: 15px; accent-color: #007AFF; }
+        /* [Fix 1] 체중 입력 행 */
+        .weight-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+        .weight-row label { font-size: 0.75rem; color: #65676b; }
+        .weight-row input[type="number"] { width: 70px; padding: 5px 10px; border: 1.5px solid #e4e6eb; border-radius: 8px; font-size: 0.9rem; text-align: center; color: #1c1e21; }
+        button.main-btn { width: 100%; padding: 1rem; font-size: 1.1rem; font-weight: 600; cursor: pointer; border: none; border-radius: 12px; background: #007AFF; color: white; }
         .history-container { width: 90%; max-width: 420px; background: white; border-radius: 20px; padding: 1.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         td, th { padding: 8px 0; border-bottom: 1px solid #f0f2f5; text-align: left; }
@@ -30,160 +32,261 @@
 <body>
 
 <div class="container">
-    <div id="statusText" style="margin-bottom: 1rem; font-weight: 600; font-size: 0.9rem;">High-Speed Track Mode</div>
+    <div id="statusText" style="margin-bottom: 1rem; font-weight: 600; font-size: 0.9rem;">Punch Counter v1.7</div>
     <div class="timer-presets">
         <button class="preset-btn" data-time="5">5m</button>
         <button class="preset-btn" data-time="10">10m</button>
         <button class="preset-btn active" data-time="15">15m</button>
         <button class="preset-btn" data-time="30">30m</button>
     </div>
-    
     <div class="stat-grid">
         <div class="stat-box" style="grid-column: span 2;"><div class="label">PUNCHES</div><div id="hitCount" class="value">0</div></div>
         <div class="stat-box"><div class="label">TIME</div><div id="timer" class="value">15:00</div></div>
         <div class="stat-box"><div class="label">KCAL</div><div id="calories" class="value">0.0</div></div>
     </div>
-
-    <div class="visualizer-container">
-        <div class="meter-bar">
-            <div id="volumeLevel"></div>
-            <div id="thresholdLine"></div>
-        </div>
+    <div class="meter-bar"><div id="volumeLevel"></div><div id="thresholdLine" style="left: 35%;"></div></div>
+    <div class="slider-label"><span>타격 임계값</span><span id="v_thresh">35</span></div>
+    <input type="range" id="thresholdSlider" min="5" max="100" value="35">
+    <div class="slider-label"><span>타격 간격(쿨다운)</span><span id="v_cool">180ms</span></div>
+    <input type="range" id="cooldownSlider" min="100" max="400" step="10" value="180">
+    <!-- [Fix 1] 체중 입력 필드 추가 -->
+    <div class="weight-row">
+        <label for="weightInput">체중 (kg)</label>
+        <input type="number" id="weightInput" min="30" max="200" value="70">
     </div>
-
-    <div class="slider-group">
-        <div class="slider-label"><span>타격 임계값</span><span id="v_thresh">35</span></div>
-        <input type="range" id="thresholdSlider" min="5" max="100" value="35">
-        
-        <div class="slider-label"><span>타격 간격(쿨다운)</span><span id="v_cool">180ms</span></div>
-        <input type="range" id="cooldownSlider" min="100" max="400" step="10" value="180">
-    </div>
-
-    <button id="startButton" class="main-btn">START</button>
+    <button id="startButton" class="main-btn">운동 시작</button>
 </div>
 
 <div class="history-container">
-    <div style="font-weight:bold; margin-bottom:10px;">Workout History</div>
-    <table>
-        <tbody id="historyBody"></tbody>
-    </table>
+    <table id="historyTable"><tbody id="historyBody"></tbody></table>
 </div>
 
 <script>
-    let audioContext, analyser, microphone, javascriptNode, timerInterval;
+    // ─── [Fix 4] ScriptProcessorNode(deprecated) 대신 AudioWorklet 사용 ───
+    // AudioWorklet: 렌더링 스레드에서 직접 실행되므로 성능 및 정확도 향상
+    // RMS 계산: 주파수 평균 대신 시간 도메인 기반 Root Mean Square 사용
+    //   → 임팩트 트랜지언트(타격 순간) 감지에 더 정확
+    const WORKLET_CODE = `
+class RMSProcessor extends AudioWorkletProcessor {
+    constructor() {
+        super();
+        // 버퍼 크기: 1024 샘플 ≈ 23ms @44100Hz
+        this._bufSize = 1024;
+        this._buf = new Float32Array(this._bufSize);
+        this._idx = 0;
+    }
+    process(inputs) {
+        const ch = inputs[0]?.[0];
+        if (!ch) return true;
+        for (let i = 0; i < ch.length; i++) {
+            this._buf[this._idx++] = ch[i];
+            if (this._idx >= this._bufSize) {
+                // RMS: sqrt(mean(x^2)) — 시간 도메인 에너지 측정
+                let sum = 0;
+                for (let j = 0; j < this._bufSize; j++) sum += this._buf[j] * this._buf[j];
+                this.port.postMessage({ rms: Math.sqrt(sum / this._bufSize) });
+                this._idx = 0;
+            }
+        }
+        return true;
+    }
+}
+registerProcessor('rms-processor', RMSProcessor);
+`;
+
+    let audioContext, workletNode, microphone, timerInterval;
     let hitCount = 0, isRunning = false, lastHitTime = 0;
     let targetMinutes = 15, remainingSeconds = 15 * 60;
-    
-    let threshold = 35;
-    let cooldownPeriod = 180; 
-    let previousAvg = 0; // 바로 이전 프레임의 소리 크기 저장
+    let threshold = 35, cooldownPeriod = 180;
     let isMuting = false;
 
-    const hitDisplay = document.getElementById('hitCount'), timerDisplay = document.getElementById('timer');
-    const calorieDisplay = document.getElementById('calories'), startButton = document.getElementById('startButton');
-    const volumeLevel = document.getElementById('volumeLevel'), historyBody = document.getElementById('historyBody');
-    const threshLine = document.getElementById('thresholdLine');
+    // [Fix 2] previousRMS: 뮤팅 여부와 무관하게 항상 갱신해야 함
+    //   → 뮤팅 해제 직후 첫 프레임에서 오래된 값과 비교하여 허위 카운트 발생 방지
+    let previousRMS = 0;
+
+    // [Fix 3] isFirstStart: 최초 시작과 RESUME 구분
+    //   → 벨 소리는 처음 시작할 때만 재생, RESUME 시에는 재생하지 않음
+    let isFirstStart = true;
 
     window.onload = loadHistory;
+
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (isRunning) return;
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            targetMinutes = parseInt(btn.dataset.time);
+            remainingSeconds = targetMinutes * 60;
+            updateTimerDisplay();
+        });
+    });
 
     document.getElementById('thresholdSlider').oninput = function() {
         threshold = parseInt(this.value);
         document.getElementById('v_thresh').innerText = threshold;
-        threshLine.style.left = threshold + '%';
+        document.getElementById('thresholdLine').style.left = threshold + '%';
     };
-    
+
     document.getElementById('cooldownSlider').oninput = function() {
         cooldownPeriod = parseInt(this.value);
         document.getElementById('v_cool').innerText = cooldownPeriod + 'ms';
     };
 
-    threshLine.style.left = '35%';
+    // [Fix 1] 체중 입력값 읽기 (범위 벗어나면 70kg으로 폴백)
+    function getUserWeight() {
+        const w = parseInt(document.getElementById('weightInput').value);
+        return (isNaN(w) || w < 30 || w > 200) ? 70 : w;
+    }
 
-    function playBell() {
-        if (!audioContext) return;
+    // MP3 사운드 파일 사전 로드 (index.html 과 같은 디렉토리)
+    const sounds = {
+        start:  new Audio('start.mp3'),
+        resume: new Audio('resume.mp3'),
+        end:    new Audio('end.mp3')
+    };
+    Object.values(sounds).forEach(a => { a.preload = 'auto'; a.load(); });
+
+    // name: 'start' | 'resume' | 'end'
+    // 재생 중에는 isMuting = true → 마이크 입력 차단(허위 카운트 방지)
+    // onended 이벤트로 뮤팅 해제, 5초 안전 타임아웃 병행
+    function playSound(name) {
+        const audio = sounds[name];
+        if (!audio) return;
         isMuting = true;
-        const osc = audioContext.createOscillator();
-        const gain = audioContext.createGain();
-        osc.frequency.setValueAtTime(880, audioContext.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(660, audioContext.currentTime + 0.15);
-        gain.gain.setValueAtTime(0, audioContext.currentTime);
-        gain.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-        osc.connect(gain); gain.connect(audioContext.destination);
-        osc.start(); osc.stop(audioContext.currentTime + 0.3);
-        setTimeout(() => { isMuting = false; }, 350);
+        audio.currentTime = 0;
+        // 뮤팅 해제: 재생 완료 시점에 정확하게 해제
+        const release = () => { isMuting = false; };
+        audio.onended = release;
+        // 안전 폴백: 파일 로드 실패 등으로 onended 미발생 시 5초 후 강제 해제
+        const fallback = setTimeout(release, 5000);
+        audio.play().catch(() => { clearTimeout(fallback); isMuting = false; });
     }
 
     async function setupAudio() {
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            analyser = audioContext.createAnalyser();
-            microphone = audioContext.createMediaStreamSource(stream);
-            javascriptNode = audioContext.createScriptProcessor(1024, 1, 1);
-            analyser.fftSize = 256;
-            microphone.connect(analyser); analyser.connect(javascriptNode); javascriptNode.connect(audioContext.destination);
-            
-            javascriptNode.onaudioprocess = () => {
-                if (isMuting || !isRunning) return;
 
-                const array = new Uint8Array(analyser.frequencyBinCount);
-                analyser.getByteFrequencyData(array);
-                let avg = array.reduce((a, b) => a + b) / array.length;
-                
-                volumeLevel.style.width = Math.min(avg, 100) + '%';
-                
+            // [Fix 4] AudioWorklet 모듈 등록 (Blob URL 사용)
+            const blob = new Blob([WORKLET_CODE], { type: 'application/javascript' });
+            const workletUrl = URL.createObjectURL(blob);
+            await audioContext.audioWorklet.addModule(workletUrl);
+            URL.revokeObjectURL(workletUrl); // 등록 후 즉시 해제
+
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            microphone = audioContext.createMediaStreamSource(stream);
+            workletNode = new AudioWorkletNode(audioContext, 'rms-processor');
+
+            workletNode.port.onmessage = (event) => {
+                const { rms } = event.data;
+
+                // RMS(0~1)를 표시용 0~100%로 스케일
+                // 계수 300: 일반 마이크 감도 기준 조정값
+                const displayVal = Math.min(rms * 300, 100);
+                document.getElementById('volumeLevel').style.width = displayVal + '%';
+
                 const now = Date.now();
-                // 핵심 로직: 
-                // 1. 임계값을 넘었고
-                // 2. 마지막 타격 이후 쿨다운이 지났으며
-                // 3. 소리가 상승하고 있는 '상승 엣지'인 경우 (avg > previousAvg + alpha)
-                if (avg > threshold && (now - lastHitTime > cooldownPeriod)) {
-                    if (avg > previousAvg + 2) { // 델타값(+2)을 주어 미세 진동 무시
+
+                // 타격 감지: 뮤팅 해제 + 운동 중일 때만 실행
+                if (!isMuting && isRunning) {
+                    const risingEdge = rms > previousRMS * 1.3; // 직전 대비 30% 이상 상승
+                    if (displayVal > threshold && (now - lastHitTime > cooldownPeriod) && risingEdge) {
                         hitCount++;
-                        hitDisplay.innerText = hitCount;
+                        document.getElementById('hitCount').innerText = hitCount;
                         lastHitTime = now;
-                        
-                        volumeLevel.style.background = '#ff3b30';
-                        setTimeout(() => volumeLevel.style.background = '#34c759', 80);
+                        document.getElementById('volumeLevel').style.background = '#ff3b30';
+                        setTimeout(() => document.getElementById('volumeLevel').style.background = '#34c759', 80);
                     }
                 }
-                
-                previousAvg = avg; // 현재 값을 다음 연산을 위해 저장
+
+                // [Fix 2] previousRMS는 뮤팅 상태와 무관하게 항상 갱신
+                previousRMS = rms;
             };
+
+            // AudioWorklet은 그래프에 연결되어야 처리가 활성화됨
+            microphone.connect(workletNode);
+            workletNode.connect(audioContext.destination);
             return true;
-        } catch (e) { alert('마이크 권한이 필요합니다.'); return false; }
+        } catch (e) {
+            alert('마이크 권한이 필요합니다.');
+            return false;
+        }
     }
 
     function updateTimerDisplay() {
-        timerDisplay.innerText = `${Math.floor(remainingSeconds/60).toString().padStart(2,'0')}:${(remainingSeconds%60).toString().padStart(2,'0')}`;
+        const m = Math.floor(remainingSeconds / 60).toString().padStart(2, '0');
+        const s = (remainingSeconds % 60).toString().padStart(2, '0');
+        document.getElementById('timer').innerText = `${m}:${s}`;
     }
 
     function saveWorkout() {
         const history = JSON.parse(localStorage.getItem('punchHistory') || '[]');
-        history.unshift({ date: new Date().toLocaleDateString(), hits: hitCount, duration: targetMinutes, kcal: calorieDisplay.innerText });
+        history.unshift({
+            date: new Date().toLocaleDateString(),
+            hits: hitCount,
+            kcal: document.getElementById('calories').innerText
+        });
         localStorage.setItem('punchHistory', JSON.stringify(history.slice(0, 5)));
         loadHistory();
     }
 
     function loadHistory() {
         const history = JSON.parse(localStorage.getItem('punchHistory') || '[]');
-        historyBody.innerHTML = history.map(h => `<tr><td>${h.date}</td><td>${h.hits}회</td><td>${h.kcal} kcal</td></tr>`).join('');
+        document.getElementById('historyBody').innerHTML = history
+            .map(h => `<tr><td>${h.date}</td><td>${h.hits}회</td><td>${h.kcal} kcal</td></tr>`)
+            .join('');
     }
 
-    startButton.addEventListener('click', async () => {
+    document.getElementById('startButton').addEventListener('click', async () => {
         if (!isRunning) {
-            if (!audioContext) { if (!(await setupAudio())) return; } else audioContext.resume();
-            if (remainingSeconds <= 0) { remainingSeconds = targetMinutes * 60; hitCount = 0; hitDisplay.innerText = '0'; }
-            playBell();
+            // 오디오 초기화 또는 재개
+            if (!audioContext) {
+                if (!(await setupAudio())) return;
+            } else {
+                audioContext.resume();
+            }
+
+            // 타이머 만료 후 재시작
+            if (remainingSeconds <= 0) {
+                remainingSeconds = targetMinutes * 60;
+                hitCount = 0;
+                document.getElementById('hitCount').innerText = '0';
+                isFirstStart = true;
+            }
+
+            // 최초 시작: start.mp3 / RESUME: resume.mp3
+            if (isFirstStart) {
+                playSound('start');
+                isFirstStart = false;
+            } else {
+                playSound('resume');
+            }
+
             timerInterval = setInterval(() => {
                 if (remainingSeconds > 0) {
-                    remainingSeconds--; updateTimerDisplay();
-                    calorieDisplay.innerText = ((8.0 * 3.5 * 70 / 200) * (targetMinutes - remainingSeconds / 60)).toFixed(1);
-                } else { clearInterval(timerInterval); isRunning = false; startButton.innerText = '다시 시작'; playBell(); saveWorkout(); }
+                    remainingSeconds--;
+                    updateTimerDisplay();
+                    // [Fix 1] 사용자 체중 반영
+                    const weight = getUserWeight();
+                    const elapsedMin = targetMinutes - remainingSeconds / 60;
+                    document.getElementById('calories').innerText =
+                        ((8.0 * 3.5 * weight / 200) * elapsedMin).toFixed(1);
+                } else {
+                    clearInterval(timerInterval);
+                    isRunning = false;
+                    isFirstStart = true;
+                    document.getElementById('startButton').innerText = '다시 시작';
+                    playSound('end');
+                    saveWorkout();
+                }
             }, 1000);
-            startButton.innerText = 'PAUSE'; isRunning = true;
-        } else { clearInterval(timerInterval); isRunning = false; startButton.innerText = 'RESUME'; }
+
+            document.getElementById('startButton').innerText = 'PAUSE';
+            isRunning = true;
+        } else {
+            clearInterval(timerInterval);
+            isRunning = false;
+            document.getElementById('startButton').innerText = 'RESUME';
+        }
     });
 </script>
 </body>
