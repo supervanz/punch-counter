@@ -56,7 +56,7 @@ A web app that counts sandbag punches in real time using only a microphone.
 
 ### Try It Now
 
-👉 **[https://your-username.github.io/punch-counter/](https://your-username.github.io/punch-counter/)**
+👉 **[https://supervanz.github.io/punch-counter/](https://supervanz.github.io/punch-counter/)**
 
 No install. No app store. Just open the link, allow microphone access, and start punching.
 Works on smartphones, tablets, and desktop browsers.
