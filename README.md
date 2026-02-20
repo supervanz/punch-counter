@@ -9,7 +9,7 @@ A web app that counts sandbag punches in real time using only a microphone.
 
 ### 바로 사용하기
 
-👉 **[https://your-username.github.io/punch-counter/](https://your-username.github.io/punch-counter/)**
+👉 **[https://supervanz.github.io/punch-counter/](https://supervanz.github.io/punch-counter/)**
 
 설치 불필요. 링크를 열고 마이크 권한만 허용하면 됩니다.
 스마트폰, 태블릿, PC 브라우저 모두 지원합니다.
